@@ -192,17 +192,17 @@ return [
             'submenu' => [
                 [
                     'text' => 'User List',
-                    'url' => '#',
+                    'url' => 'users',
                     'icon' => 'ti ti-user-list',
                 ],
                 [
                     'text' => 'Roles & Permissions',
-                    'url' => '#',
+                    'url' => 'roles-permissions',
                     'icon' => 'ti ti-shield-lock',
                 ],
                 [
                     'text' => 'Add New User',
-                    'url' => '#',
+                    'url' => 'users/create',
                     'icon' => 'ti ti-user-plus',
                 ],
             ],

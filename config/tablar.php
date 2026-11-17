@@ -215,12 +215,12 @@ return [
             'submenu' => [
                 [
                     'text' => 'All Areas',
-                    'url' => '#',
+                    'url' => 'areas',
                     'icon' => 'ti ti-list',
                 ],
                 [
                     'text' => 'Add Area',
-                    'url' => '#',
+                    'url' => 'areas/create',
                     'icon' => 'ti ti-plus',
                 ],
             ],

@@ -28,5 +28,10 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/roles-permissions/{role}', [UserManagementController::class, 'destroyRole'])->name('roles.destroy');
     Route::post('/permissions', [UserManagementController::class, 'storePermission'])->name('permissions.store');
     // Area Management Routes
-    Route::get('/Vehicle_controller/view_area', [AreaController::class, 'index']);
+    Route::get('/areas', [AreaController::class, 'index'])->name('areas.index');
+    Route::get('/areas/create', [AreaController::class, 'create'])->name('areas.create');
+    Route::post('/areas', [AreaController::class, 'store'])->name('areas.store');
+    Route::get('/areas/{area}/edit', [AreaController::class, 'edit'])->name('areas.edit');
+    Route::put('/areas/{area}', [AreaController::class, 'update'])->name('areas.update');
+    Route::delete('/areas/{area}', [AreaController::class, 'destroy'])->name('areas.destroy');
 });

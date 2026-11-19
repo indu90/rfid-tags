@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('area_id')->constrained('areas')->onDelete('cascade');
             $table->string('location_name');
             $table->string('location_type'); // e.g., 'In', 'Out', 'Warehouse'
+            $table->string('status')->default('Active');
             $table->timestamps();
         });
     }

@@ -30,8 +30,21 @@ Route::middleware(['auth'])->group(function () {
     // Area Management Routes
     Route::get('/areas', [AreaController::class, 'index'])->name('areas.index');
     Route::get('/areas/create', [AreaController::class, 'create'])->name('areas.create');
+    Route::get('/areas/check-name', [AreaController::class, 'checkName'])->name('areas.checkName');
     Route::post('/areas', [AreaController::class, 'store'])->name('areas.store');
     Route::get('/areas/{area}/edit', [AreaController::class, 'edit'])->name('areas.edit');
     Route::put('/areas/{area}', [AreaController::class, 'update'])->name('areas.update');
     Route::delete('/areas/{area}', [AreaController::class, 'destroy'])->name('areas.destroy');
+    Route::get('/Vehicle_controller/view_area', [AreaController::class, 'index']);
+
+    // Location Management Routes
+    Route::get('/locations', [\App\Http\Controllers\LocationController::class, 'index'])->name('locations.index');
+    Route::get('/locations/create', [\App\Http\Controllers\LocationController::class, 'create'])->name('locations.create');
+    Route::post('/locations', [\App\Http\Controllers\LocationController::class, 'store'])->name('locations.store');
+    Route::get('/locations/{location}', [\App\Http\Controllers\LocationController::class, 'show'])->name('locations.show');
+    Route::get('/locations/{location}/edit', [\App\Http\Controllers\LocationController::class, 'edit'])->name('locations.edit');
+    Route::put('/locations/{location}', [\App\Http\Controllers\LocationController::class, 'update'])->name('locations.update');
+    Route::delete('/locations/{location}', [\App\Http\Controllers\LocationController::class, 'destroy'])->name('locations.destroy');
+    Route::get('/Vehicle_controller/view_location', [\App\Http\Controllers\LocationController::class, 'index']);
+    Route::get('/Vehicle_controller/add_location', [\App\Http\Controllers\LocationController::class, 'create']);
 });

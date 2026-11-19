@@ -233,17 +233,12 @@ return [
             'submenu' => [
                 [
                     'text' => 'All Locations',
-                    'url' => '#',
+                    'url' => 'locations',
                     'icon' => 'ti ti-building-warehouse',
                 ],
                 [
-                    'text' => 'Location Types',
-                    'url' => '#',
-                    'icon' => 'ti ti-category',
-                ],
-                [
                     'text' => 'Add Location',
-                    'url' => '#',
+                    'url' => 'locations/create',
                     'icon' => 'ti ti-circle-plus',
                 ],
             ],

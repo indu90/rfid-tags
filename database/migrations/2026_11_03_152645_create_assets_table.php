@@ -17,7 +17,9 @@ return new class extends Migration
             $table->string('asset_code')->unique();
             $table->string('name');
             $table->foreignId('location_id')->nullable()->constrained('locations')->nullOnDelete();
-            $table->enum('status', ['IN', 'OUT'])->default('IN');
+            $table->string('category', 100)->nullable();
+            $table->enum('status', ['available', 'in_use', 'maintenance', 'retired'])->default('available');
+            $table->timestamp('last_seen_at')->nullable();
             $table->timestamps();
         });
     }

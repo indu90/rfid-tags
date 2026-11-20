@@ -16,8 +16,8 @@
         @endif
 
         <div class="card shadow-sm border-0">
-            <!-- Header matching Image 2 -->
-            <div class="card-header bg-white border-bottom py-3">
+            <!-- Card Header -->
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-grid-dots me-2 text-dark" width="24" height="24" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none">
                         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -32,6 +32,11 @@
                         <circle cx="19" cy="19" r="1" fill="currentColor"/>
                     </svg>
                     <h3 class="card-title fw-bold text-dark mb-0 fs-3">ALL AREAS</h3>
+                </div>
+                <div>
+                    <a href="{{ route('areas.create') }}" class="btn btn-warning text-white fw-bold px-4">
+                        + Add Area
+                    </a>
                 </div>
             </div>
 
@@ -52,25 +57,25 @@
                     </div>
                 </div>
 
-                <!-- Table matching Image 2 -->
+                <!-- Areas Table -->
                 <div class="table-responsive">
                     <table class="table table-bordered table-vcenter text-nowrap align-middle" id="areasTable">
                         <thead>
                             <tr class="table-light text-dark border-bottom">
                                 <th class="text-nowrap" style="cursor: pointer;" onclick="sortTable(0)">
-                                    Serial No. <span class="sort-icon float-end text-muted small">▲▼</span>
+                                    Serial No. <span class="sort-icon float-end text-muted small"></span>
                                 </th>
                                 <th class="text-nowrap" style="cursor: pointer;" onclick="sortTable(1)">
-                                    Area Name <span class="sort-icon float-end text-muted small">▲▼</span>
+                                    Area Name <span class="sort-icon float-end text-muted small"></span>
                                 </th>
                                 <th class="text-nowrap" style="cursor: pointer;" onclick="sortTable(2)">
-                                    Status <span class="sort-icon float-end text-muted small">▲▼</span>
+                                    Status <span class="sort-icon float-end text-muted small"></span>
                                 </th>
                                 <th class="text-nowrap" style="cursor: pointer;" onclick="sortTable(3)">
-                                    Created Date <span class="sort-icon float-end text-muted small">▲▼</span>
+                                    Created Date <span class="sort-icon float-end text-muted small"></span>
                                 </th>
                                 <th class="text-nowrap text-center">
-                                    Action <span class="sort-icon float-end text-muted small">▲▼</span>
+                                    Action <span class="sort-icon float-end text-muted small"></span>
                                 </th>
                             </tr>
                         </thead>

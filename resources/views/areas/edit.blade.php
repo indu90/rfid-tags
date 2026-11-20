@@ -50,16 +50,16 @@
 
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
-                <form action="{{ route('areas.update', $area->id) }}" method="POST">
+                <form id="editAreaForm" action="{{ route('areas.update', $area->id) }}" method="POST" novalidate>
                     @csrf
                     @method('PUT')
 
                     <div class="mb-3">
                         <label class="form-label required" for="name">Area Name</label>
-                        <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $area->name) }}" required>
-                        @error('name')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $area->name) }}">
+                        <div class="invalid-feedback" id="nameError">
+                            @error('name') {{ $message }} @else Please enter a valid Area Name. @enderror
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -95,5 +95,70 @@
 
     </div>
 </div>
+
+@push('js')
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.getElementById('editAreaForm');
+        const name = document.getElementById('name');
+
+        // Helper to get or create invalid feedback element
+        function getOrCreateError(inputElement, defaultMsg) {
+            let feedback = inputElement.parentNode.querySelector('.invalid-feedback');
+            if (!feedback) {
+                feedback = document.createElement('div');
+                feedback.className = 'invalid-feedback';
+                feedback.innerText = defaultMsg;
+                inputElement.parentNode.appendChild(feedback);
+            }
+            return feedback;
+        }
+
+        const nameError = getOrCreateError(name, 'Please enter a valid area name.');
+        const existingAreas = @json($existingAreas ?? []);
+
+        // Area Name Live Validation & Restriction
+        name.addEventListener('input', function() {
+            const raw = name.value;
+            const clean = raw.replace(/[^a-zA-Z\s]/g, '');
+
+            if (raw !== clean) {
+                nameError.innerText = 'Numbers and special characters are not allowed in names!';
+                name.classList.add('is-invalid');
+            } else if (!clean.trim()) {
+                nameError.innerText = 'Area name cannot be empty.';
+                name.classList.add('is-invalid');
+            } else if (existingAreas.includes(clean.trim().toLowerCase())) {
+                nameError.innerText = 'Area name already exists!';
+                name.classList.add('is-invalid');
+            } else {
+                name.classList.remove('is-invalid');
+            }
+            name.value = clean;
+        });
+
+        // Form Submission Validation
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            const clean = name.value.trim();
+
+            if (!clean) {
+                nameError.innerText = 'Area name cannot be empty.';
+                name.classList.add('is-invalid');
+                isValid = false;
+            } else if (existingAreas.includes(clean.toLowerCase())) {
+                nameError.innerText = 'Area name already exists!';
+                name.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            if (!isValid || name.classList.contains('is-invalid')) {
+                event.preventDefault();
+                name.focus();
+            }
+        });
+    });
+</script>
+@endpush
 @endsection
 

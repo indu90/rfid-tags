@@ -32,7 +32,26 @@ class AreaController extends Controller
      */
     public function create()
     {
-        return view('areas.create');
+        $existingAreas = Area::pluck('name')->map(fn($n) => strtolower(trim($n)))->toArray();
+        return view('areas.create', compact('existingAreas'));
+    }
+
+    /**
+     * Check if an area name already exists (AJAX duplicacy check).
+     */
+    public function checkName(Request $request)
+    {
+        $name = trim($request->input('name', ''));
+        $ignoreId = $request->input('ignore_id');
+
+        $query = Area::whereRaw('LOWER(name) = ?', [strtolower($name)]);
+        if ($ignoreId) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        return response()->json([
+            'exists' => $query->exists()
+        ]);
     }
 
     /**
@@ -42,9 +61,10 @@ class AreaController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:areas,name',
-            'status' => 'required|string|in:Active,Inactive',
             'description' => 'nullable|string',
         ]);
+
+        $validated['status'] = 'Active'; // Automatically active on creation
 
         Area::create($validated);
 
@@ -64,7 +84,11 @@ class AreaController extends Controller
      */
     public function edit(Area $area)
     {
-        return view('areas.edit', compact('area'));
+        $existingAreas = Area::where('id', '!=', $area->id)
+            ->pluck('name')
+            ->map(fn($n) => strtolower(trim($n)))
+            ->toArray();
+        return view('areas.edit', compact('area', 'existingAreas'));
     }
 
     /**

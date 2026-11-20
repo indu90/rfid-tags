@@ -68,6 +68,21 @@
                         </div>
 
                         <div class="col-md-3">
+                            <label class="form-label" for="category">Category</label>
+                            <select name="category" id="category" class="form-select @error('category') is-invalid @enderror">
+                                <option value="">Select Category...</option>
+                                @foreach(($categories ?? collect()) as $categoryName)
+                                <option value="{{ $categoryName }}" {{ old('category') === $categoryName ? 'selected' : '' }}>
+                                    {{ $categoryName }}
+                                </option>
+                                @endforeach
+                            </select>
+                            @error('category')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-3">
                             <label class="form-label required">Initial Status</label>
                             <select name="status" class="form-select">
                                 <option value="">All Statuses</option>

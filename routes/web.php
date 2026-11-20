@@ -55,8 +55,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/asset', [AssetController::class, 'store'])->name('asset.store');
     Route::post('/asset/categories/category', [AssetController::class, 'storeCategoryName'])
         ->name('/asset.categories.category.store');
-    Route::post('/asset/map/sync-log', [AssetController::class, 'syncFromLogFile'])
+    Route::match(['get', 'post'], '/asset/map/sync-log', [AssetController::class, 'syncFromLogFile'])
         ->name('asset.map.sync-log');
+    Route::post('/asset/map/store-scan', [AssetController::class, 'storeScan'])->name('asset.map.store-scan');
+    Route::get('/asset/{asset}/edit', [AssetController::class, 'edit'])->name('asset.edit');
+    Route::put('/asset/{asset}', [AssetController::class, 'update'])->name('asset.update');
+    Route::delete('/asset/{asset}', [AssetController::class, 'destroy'])->name('asset.destroy');
     Route::get('/asset/map/latest-scan', [AssetController::class, 'latestScan'])
         ->name('asset.map.latest-scan');
 });

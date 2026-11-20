@@ -44,6 +44,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/locations/{location}', [\App\Http\Controllers\LocationController::class, 'show'])->name('locations.show');
     Route::get('/locations/{location}/edit', [\App\Http\Controllers\LocationController::class, 'edit'])->name('locations.edit');
     Route::put('/locations/{location}', [\App\Http\Controllers\LocationController::class, 'update'])->name('locations.update');
+    Route::delete('/locations/{location}', [\App\Http\Controllers\LocationController::class, 'destroy'])->name('locations.destroy');
     // Asset Management Routes
     Route::get('/asset', [AssetController::class, 'index'])->name('asset.index');
     Route::get('/asset/create', [AssetController::class, 'create'])->name('asset.create');

@@ -110,4 +110,14 @@ class LocationController extends Controller
 
         return redirect()->route('locations.index')->with('success', $msg);
     }
+
+    /**
+     * Remove the specified location from storage.
+     */
+    public function destroy(Location $location)
+    {
+        $location->delete();
+
+        return redirect()->route('locations.index')->with('success', 'Location deleted successfully.');
+    }
 }

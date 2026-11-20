@@ -7,4 +7,4 @@ Route::get('/', function () {
     return view('dashboard'); // Loads resources/views/dashboard.blade.php
 });
 // Public or API-Key protected RFID capture endpoint
-Route::post('/tags', [RfidTagController::class, 'store']);
+Route::match(['get', 'post'], '/rfid/logs', [RfidTagController::class, 'store']);

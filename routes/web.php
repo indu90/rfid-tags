@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RfidStreamController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\AreaController;
+use App\Http\Controllers\AssetController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -34,4 +35,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/areas/{area}/edit', [AreaController::class, 'edit'])->name('areas.edit');
     Route::put('/areas/{area}', [AreaController::class, 'update'])->name('areas.update');
     Route::delete('/areas/{area}', [AreaController::class, 'destroy'])->name('areas.destroy');
+    // Asset Management Routes
+    Route::get('/asset', [AssetController::class, 'index'])->name('asset.index');
+    Route::get('/asset/create', [AssetController::class, 'create'])->name('asset.create');
+    Route::post('/asset', [AssetController::class, 'store'])->name('asset.store');
+    Route::post('/asset/map-tag', [AssetController::class, 'mapTag'])->name('asset.map');
 });

@@ -1,159 +1,282 @@
 @extends('tablar::page')
 
-@section('title', 'Create User - RFID Tags App')
+@section('title', 'Roles & Permissions')
 
 @section('content')
-<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
-    <div class="card shadow-sm w-100" style="max-width: 800px; background-color: #ffffff; border-radius: 8px;">
-        <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                <h4 class="mb-0 text-dark fw-bold">Add User</h4>
-                <a href="{{ route('users.index') }}" class="btn-close" aria-label="Close"></a>
+<!-- Page header -->
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">User Management</div>
+                <h2 class="page-title">Roles &amp; Permissions</h2>
             </div>
-
-            <form id="createUserForm" action="{{ route('users.store') }}" method="POST" novalidate>
-                @csrf
-                <div class="row">
-                    <!-- User / Name -->
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-secondary">User <span class="text-danger">*</span></label>
-                        <input type="text" id="name" name="name" class="form-control" placeholder="Enter name" value="{{ old('name') }}">
-                        <div class="invalid-feedback" id="nameError">Please enter a valid name.</div>
-                    </div>
-
-                    <!-- Role -->
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-secondary">Role <span class="text-danger">*</span></label>
-                        <select id="role" name="role" class="form-select @error('role') is-invalid @enderror">
-                            <option value="">Select Role</option>
-                            @foreach($roles as $role)
-                            <option value="{{ $role->id }}" {{ old('role') == $role->id ? 'selected' : '' }}>
-                                {{ $role->name }}
-                            </option>
-                            @endforeach
-                        </select>
-                        <div class="invalid-feedback" id="roleError">Please select a role.</div>
-                        @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
-
-                    <!-- Email -->
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-secondary">Email <span class="text-danger">*</span></label>
-                        <input type="email" id="email" name="email" class="form-control" placeholder="Enter email address" value="{{ old('email') }}">
-                        <div class="invalid-feedback" id="emailError">Please enter a valid email address.</div>
-                    </div>
-
-                    <!-- Phone -->
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-secondary">Phone <span class="text-danger">*</span></label>
-                        <input type="text" id="phone" name="phone" class="form-control" placeholder="Enter 10-digit phone number" value="{{ old('phone') }}" maxlength="10">
-                        <div class="invalid-feedback" id="phoneError">Please enter a valid 10-digit phone number.</div>
-                    </div>
-
-                    <!-- Password -->
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-secondary">Password <span class="text-danger">*</span></label>
-                        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••">
-                        <div class="invalid-feedback" id="passwordError">Password must be at least 8 characters long.</div>
-                    </div>
-
-                    <!-- Confirm Password -->
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-secondary">Confirm Password <span class="text-danger">*</span></label>
-                        <input type="password" id="password_confirmation" name="password_confirmation" class="form-control" placeholder="Confirm password">
-                        <div class="invalid-feedback" id="confirmPasswordError">Passwords do not match.</div>
-                    </div>
-
-                    <!-- Status Toggle -->
-                    <div class="col-12 mb-4">
-                        <label class="form-label text-secondary d-block">Status</label>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" id="statusToggle" name="status" value="1" checked style="width: 3rem; height: 1.5rem;">
-                            <label class="form-check-label ms-2 mt-1" for="statusToggle">Active</label>
-                        </div>
-                    </div>
+            <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addPermissionModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <path d="M12 5l0 14" />
+                            <path d="M5 12l14 0" />
+                        </svg>
+                        Add Permission
+                    </button>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <path d="M12 5l0 14" />
+                            <path d="M5 12l14 0" />
+                        </svg>
+                        Add New Role
+                    </button>
                 </div>
-
-                <!-- Action Buttons -->
-                <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                    <a href="{{ route('users.index') }}" class="btn btn-secondary px-4">Cancel</a>
-                    <button type="submit" class="btn btn-warning text-white px-4">Add User</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 
-@push('js')
+<!-- Page body -->
+<div class="page-body">
+    <div class="container-xl">
+        @if (session('success'))
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <div>{{ session('success') }}</div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+        @endif
+
+        @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+        @endif
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">System Roles</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table card-table table-vcenter text-nowrap datatable">
+                    <thead>
+                        <tr>
+                            <th class="w-1">#</th>
+                            <th>Role Name</th>
+                            <th>Users</th>
+                            <th>Assigned Permissions</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($roles as $index => $role)
+                        <tr>
+                            <td><span class="text-secondary">{{ $index + 1 }}</span></td>
+                            <td class="fw-semibold">{{ ucfirst($role->name) }}</td>
+                            <td>
+                                <span class="badge bg-blue-lt">
+                                    {{ $role->users_count ?? $role->users->count() }} {{ Str::plural('User', $role->users_count ?? $role->users->count()) }}
+                                </span>
+                            </td>
+                            <td class="text-wrap" style="max-width: 460px;">
+                                @forelse ($role->permissions as $permission)
+                                <span class="badge bg-azure-lt me-1 mb-1">{{ $permission->name }}</span>
+                                @empty
+                                <span class="text-secondary fst-italic">No permissions assigned</span>
+                                @endforelse
+                            </td>
+                            <td class="text-end">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary btn-edit-role"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editRoleModal"
+                                    data-id="{{ $role->id }}"
+                                    data-name="{{ $role->name }}"
+                                    data-update-url="{{ route('roles.update', $role->id) }}"
+                                    data-permissions='@json($role->permissions->pluck("id"))'>
+                                    Edit
+                                </button>
+
+                                <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline delete-role-form">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center text-secondary py-4">No roles found.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add New Role Modal -->
+<div class="modal modal-blur fade" id="addRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <form action="{{ route('roles.store') }}" method="POST" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label required">Role Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Supervisor, Operator" required>
+                </div>
+                <div class="mb-2 d-flex justify-content-between align-items-center">
+                    <label class="form-label mb-0">Assign Permissions</label>
+                    <label class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" id="selectAllAdd">
+                        <span class="form-check-label">Select All</span>
+                    </label>
+                </div>
+                <div class="row g-2 border rounded p-3 bg-light">
+                    @foreach ($permissions as $permission)
+                    <div class="col-md-4 col-sm-6">
+                        <label class="form-check">
+                            <input class="form-check-input add-perm-checkbox" type="checkbox" name="permissions[]" value="{{ $permission->id }}">
+                            <span class="form-check-label">{{ $permission->name }}</span>
+                        </label>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary ms-auto">Save Role</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Role Modal -->
+<div class="modal modal-blur fade" id="editRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <form id="editRoleForm" action="" method="POST" class="modal-content">
+            @csrf
+            @method('PUT')
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label required">Role Name</label>
+                    <input type="text" name="name" id="editRoleName" class="form-control" required>
+                </div>
+                <div class="mb-2 d-flex justify-content-between align-items-center">
+                    <label class="form-label mb-0">Assign Permissions</label>
+                    <label class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" id="selectAllEdit">
+                        <span class="form-check-label">Select All</span>
+                    </label>
+                </div>
+                <div class="row g-2 border rounded p-3 bg-light">
+                    @foreach ($permissions as $permission)
+                    <div class="col-md-4 col-sm-6">
+                        <label class="form-check">
+                            <input class="form-check-input edit-perm-checkbox" type="checkbox" name="permissions[]" value="{{ $permission->id }}">
+                            <span class="form-check-label">{{ $permission->name }}</span>
+                        </label>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary ms-auto">Update Role</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Permission Modal -->
+<div class="modal modal-blur fade" id="addPermissionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <form action="{{ route('permissions.store') }}" method="POST" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Permission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label required">Permission Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. rfid.scan, users.manage" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary ms-auto">Create Permission</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection
+
+@section('js')
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const form = document.getElementById('createUserForm');
+    document.addEventListener('DOMContentLoaded', () => {
+        // Select All toggle (Add Modal)
+        const selectAllAdd = document.getElementById('selectAllAdd');
+        const addCheckboxes = document.querySelectorAll('.add-perm-checkbox');
+        if (selectAllAdd) {
+            selectAllAdd.addEventListener('change', () => {
+                addCheckboxes.forEach(cb => cb.checked = selectAllAdd.checked);
+            });
+        }
 
-        form.addEventListener('submit', function(event) {
-            let isValid = true;
+        // Select All toggle (Edit Modal)
+        const selectAllEdit = document.getElementById('selectAllEdit');
+        const editCheckboxes = document.querySelectorAll('.edit-perm-checkbox');
+        if (selectAllEdit) {
+            selectAllEdit.addEventListener('change', () => {
+                editCheckboxes.forEach(cb => cb.checked = selectAllEdit.checked);
+            });
+        }
 
-            // 1. Name Validation
-            const name = document.getElementById('name');
-            if (!name.value.trim()) {
-                name.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                name.classList.remove('is-invalid');
+        // Populate Edit Role Modal via event delegation
+        document.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.btn-edit-role');
+            if (!editBtn) return;
+
+            const form = document.getElementById('editRoleForm');
+            const nameInput = document.getElementById('editRoleName');
+            const assignedIds = JSON.parse(editBtn.dataset.permissions || '[]').map(Number);
+
+            form.action = editBtn.dataset.updateUrl;
+            nameInput.value = editBtn.dataset.name;
+
+            editCheckboxes.forEach(cb => {
+                cb.checked = assignedIds.includes(Number(cb.value));
+            });
+
+            if (selectAllEdit) {
+                selectAllEdit.checked = editCheckboxes.length > 0 && Array.from(editCheckboxes).every(cb => cb.checked);
             }
+        });
 
-            // 2. Role Validation
-            const role = document.getElementById('role');
-            if (!role.value) {
-                role.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                role.classList.remove('is-invalid');
-            }
-
-            // 3. Email Validation
-            const email = document.getElementById('email');
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email.value.trim())) {
-                email.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                email.classList.remove('is-invalid');
-            }
-
-            // 4. Phone Validation (10 digits)
-            const phone = document.getElementById('phone');
-            const phoneRegex = /^\d{10}$/;
-            if (!phoneRegex.test(phone.value.trim())) {
-                phone.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                phone.classList.remove('is-invalid');
-            }
-
-            // 5. Password Validation (min 8 chars)
-            const password = document.getElementById('password');
-            if (password.value.length < 8) {
-                password.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                password.classList.remove('is-invalid');
-            }
-
-            // 6. Confirm Password Match
-            const confirmPassword = document.getElementById('password_confirmation');
-            if (confirmPassword.value !== password.value || confirmPassword.value === '') {
-                confirmPassword.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                confirmPassword.classList.remove('is-invalid');
-            }
-
-            // Prevent submission if validation fails
-            if (!isValid) {
-                event.preventDefault();
+        // Confirm before deleting a role
+        document.addEventListener('submit', (e) => {
+            if (e.target.classList.contains('delete-role-form')) {
+                if (!confirm('Are you sure you want to delete this role?')) {
+                    e.preventDefault();
+                }
             }
         });
     });
 </script>
-@endpush
 @endsection

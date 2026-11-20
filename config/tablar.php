@@ -251,24 +251,24 @@ return [
             'submenu' => [
                 [
                     'text' => 'Asset List',
-                    'url' => '#',
+                    'url' => 'asset',
                     'icon' => 'ti ti-packages',
                 ],
-                [
+                /*[
                     'text' => 'Asset Mapping',
-                    'url' => '#',
+                    'url' => 'asset/map',
                     'icon' => 'ti ti-link',
                 ],
                 [
                     'text' => 'Asset Categories',
-                    'url' => '#',
+                    'url' => 'asset/categories',
                     'icon' => 'ti ti-tags',
                 ],
                 [
                     'text' => 'Register Asset',
-                    'url' => '#',
+                    'url' => 'asset/create',
                     'icon' => 'ti ti-square-plus',
-                ],
+                ],*/
             ],
         ],
 

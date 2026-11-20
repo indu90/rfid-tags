@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RfidStreamController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\AreaController;
+use App\Http\Controllers\AssetController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -47,4 +48,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/locations/{location}', [\App\Http\Controllers\LocationController::class, 'destroy'])->name('locations.destroy');
     Route::get('/Vehicle_controller/view_location', [\App\Http\Controllers\LocationController::class, 'index']);
     Route::get('/Vehicle_controller/add_location', [\App\Http\Controllers\LocationController::class, 'create']);
+    // Asset Management Routes
+    Route::get('/asset', [AssetController::class, 'index'])->name('asset.index');
+    Route::get('/asset/create', [AssetController::class, 'create'])->name('asset.create');
+    Route::post('/asset', [AssetController::class, 'store'])->name('asset.store');
+    Route::post('/asset/map-tag', [AssetController::class, 'mapTag'])->name('asset.map');
 });

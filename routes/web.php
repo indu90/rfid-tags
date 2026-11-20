@@ -47,7 +47,12 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/locations/{location}', [\App\Http\Controllers\LocationController::class, 'destroy'])->name('locations.destroy');
     // Asset Management Routes
     Route::get('/asset', [AssetController::class, 'index'])->name('asset.index');
+    Route::get('/asset/map', [AssetController::class, 'mapForm'])->name('asset.map');
+    Route::post('/asset/map', [AssetController::class, 'mapTag'])->name('asset.map.store');
+    Route::get('/asset/categories', [AssetController::class, 'categories'])->name('asset.categories');
+    Route::post('/asset/categories', [AssetController::class, 'storeCategory'])->name('asset.categories.store');
     Route::get('/asset/create', [AssetController::class, 'create'])->name('asset.create');
     Route::post('/asset', [AssetController::class, 'store'])->name('asset.store');
-    Route::post('/asset/map-tag', [AssetController::class, 'mapTag'])->name('asset.map');
+    Route::post('/asset/categories/category', [AssetController::class, 'storeCategoryName'])
+        ->name('asset.categories.category.store');
 });

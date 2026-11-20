@@ -254,7 +254,7 @@ return [
                     'url' => 'asset',
                     'icon' => 'ti ti-packages',
                 ],
-                /*[
+                [
                     'text' => 'Asset Mapping',
                     'url' => 'asset/map',
                     'icon' => 'ti ti-link',
@@ -268,7 +268,7 @@ return [
                     'text' => 'Register Asset',
                     'url' => 'asset/create',
                     'icon' => 'ti ti-square-plus',
-                ],*/
+                ],
             ],
         ],
 

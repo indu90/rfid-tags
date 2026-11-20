@@ -19,11 +19,11 @@ class LocationController extends Controller
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
                 $q->where('location_name', 'like', "%{$search}%")
-                  ->orWhere('location_type', 'like', "%{$search}%")
-                  ->orWhere('status', 'like', "%{$search}%")
-                  ->orWhereHas('area', function ($areaQuery) use ($search) {
-                      $areaQuery->where('name', 'like', "%{$search}%");
-                  });
+                    ->orWhere('location_type', 'like', "%{$search}%")
+                    ->orWhere('status', 'like', "%{$search}%")
+                    ->orWhereHas('area', function ($areaQuery) use ($search) {
+                        $areaQuery->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -43,7 +43,7 @@ class LocationController extends Controller
             $areas = Area::orderBy('name', 'asc')->get();
         }
 
-        $locationTypes = ['In', 'Out'];
+        $locationTypes = ['In', 'Out', 'Warehouse'];
 
         return view('locations.create', compact('areas', 'locationTypes'));
     }
@@ -56,7 +56,7 @@ class LocationController extends Controller
         $validated = $request->validate([
             'area_id' => 'required|exists:areas,id',
             'location_name' => 'required|string|max:255',
-            'location_type' => 'required|in:In,Out',
+            'location_type' => 'required|in:In,Out,Warehouse',
             'status' => 'nullable|string|in:Active,Inactive',
         ]);
 
@@ -87,7 +87,7 @@ class LocationController extends Controller
     public function edit(Location $location)
     {
         $areas = Area::orderBy('name', 'asc')->get();
-        $locationTypes = ['In', 'Out'];
+        $locationTypes = ['In', 'Out', 'Warehouse'];
 
         return view('locations.edit', compact('location', 'areas', 'locationTypes'));
     }
@@ -100,7 +100,7 @@ class LocationController extends Controller
         $validated = $request->validate([
             'area_id' => 'required|exists:areas,id',
             'location_name' => 'required|string|max:255',
-            'location_type' => 'required|in:In,Out',
+            'location_type' => 'required|in:In,Out,Warehouse',
             'status' => 'required|string|in:Active,Inactive',
         ]);
 

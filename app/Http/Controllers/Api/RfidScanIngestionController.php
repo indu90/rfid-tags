@@ -67,7 +67,7 @@ class RfidScanIngestionController extends Controller
             $scannedAt = $scan['scanned_at'];
 
             $logsToInsert[] = [
-                'rfid_tag_id' => $tag?->id,
+                'id' => $tag?->id,
                 'asset_id' => $asset?->id,
                 'location_id' => $asset?->location_id,
                 'epc' => $epc,
@@ -85,10 +85,10 @@ class RfidScanIngestionController extends Controller
 
                 $matchedAssets[$epc] = [
                     'epc' => $epc,
-                    'rfid_tag_id' => $tag->id,
+                    'id' => $tag->id,
                     'asset_id' => $asset->id,
                     'asset_code' => $asset->asset_code ?? null,
-                    'asset_name' => $asset->name ?? null,
+                    'name' => $asset->name ?? null,
                     'zone_id' => $zoneId,
                     'scanned_at' => $scannedAt->toIso8601String(),
                 ];

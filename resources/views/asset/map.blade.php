@@ -91,7 +91,7 @@
         </div>
     </div>
 </div>
-
+@push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('mapTagForm');

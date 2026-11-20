@@ -386,4 +386,39 @@
 
     </div>
 </div>
+@push('js')
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        let syncing = false;
+
+        setInterval(async () => {
+            if (document.hidden || syncing) return;
+            syncing = true;
+            try {
+                const res = await fetch("{{ url('asset/map/sync-log') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        ...(csrfToken ? {
+                            'X-CSRF-TOKEN': csrfToken
+                        } : {}),
+                    },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if ((data.inserted ?? 0) > 0) {
+                        window.location.reload();
+                    }
+                }
+            } catch (err) {
+                // Ignore transient network errors
+            } finally {
+                syncing = false;
+            }
+        }, 15000);
+    });
+</script>
+@endpush
 @endsection

@@ -15,6 +15,8 @@ return new class extends Migration
             $table->string('epc')->index(); // Electronic Product Code
             $table->integer('rssi')->nullable(); // Signal strength
             $table->json('raw_payload')->nullable();
+            $table->foreignId('asset_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('status', 30)->default('unassigned')->index(); // unassigned, active, damaged, lost, retired
             $table->timestamp('read_at')->useCurrent()->index();
             $table->timestamps();
         });

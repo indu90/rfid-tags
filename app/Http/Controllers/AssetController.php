@@ -436,10 +436,12 @@ class AssetController extends Controller
 
     public function syncFromLogFile(Request $request): JsonResponse
     {
+        @set_time_limit(120);
+
         $logUrl = $request->input('url', 'https://wavelinx.in/api/log.txt');
 
         try {
-            $response = Http::timeout(15)->get($logUrl);
+            $response = Http::timeout(30)->get($logUrl);
 
             if (!$response->successful()) {
                 return response()->json([
@@ -447,11 +449,9 @@ class AssetController extends Controller
                 ], 502);
             }
 
-            $rawText = $response->body();
-
-            // Split by "API Request" blocks and collect all valid scan items
-            $blocks = preg_split('/^\s*API Request\s*$/m', $rawText);
+            $blocks = preg_split('/^\s*API Request\s*$/m', $response->body());
             $parsedScans = [];
+            $uniqueEpcs = [];
 
             foreach ($blocks as $block) {
                 $trimmed = trim($block);
@@ -465,9 +465,7 @@ class AssetController extends Controller
                     continue;
                 }
 
-                $jsonChunk = substr($trimmed, $firstBrace, $lastBrace - $firstBrace + 1);
-                $entry = json_decode($jsonChunk, true);
-
+                $entry = json_decode(substr($trimmed, $firstBrace, $lastBrace - $firstBrace + 1), true);
                 if (!is_array($entry)) {
                     continue;
                 }
@@ -486,6 +484,11 @@ class AssetController extends Controller
                         continue;
                     }
 
+                    $epc = trim((string) $scan['epc']);
+                    if ($epc === '') {
+                        continue;
+                    }
+
                     $readAt = now();
                     if (!empty($scan['timestamp'])) {
                         try {
@@ -495,84 +498,131 @@ class AssetController extends Controller
                         }
                     }
 
+                    $uniqueEpcs[$epc] = true;
                     $parsedScans[] = [
+                        'epc'     => $epc,
                         'scan'    => $scan,
                         'read_at' => $readAt,
                     ];
                 }
             }
 
-            // Sort chronologically so the first scan of each day is accurately marked IN
+            if (empty($parsedScans)) {
+                return response()->json([
+                    'message'  => 'No scan entries found in log file.',
+                    'inserted' => 0,
+                    'skipped'  => 0,
+                ]);
+            }
+
+            // Sort chronologically so first scan of each day per reader is marked IN
             usort($parsedScans, static function (array $a, array $b): int {
                 return $a['read_at']->timestamp <=> $b['read_at']->timestamp;
             });
 
-            $insertedCount = 0;
-            $skippedCount = 0;
+            // 1. Preload matching assets in one query
+            $assetsBySerial = DB::table('assets')
+                ->whereIn('serial_no', array_keys($uniqueEpcs))
+                ->select(['id', 'serial_no', 'location_id'])
+                ->get()
+                ->keyBy('serial_no');
+
+            // 2. Preload existing scan keys within the batch's read_at range in one query
+            $minReadAt = $parsedScans[0]['read_at']->format('Y-m-d H:i:s');
+            $maxReadAt = $parsedScans[count($parsedScans) - 1]['read_at']->format('Y-m-d H:i:s');
+
+            $existingRows = DB::table('rfid_scan_logs')
+                ->whereBetween('read_at', [$minReadAt, $maxReadAt])
+                ->whereIn('epc', array_keys($uniqueEpcs))
+                ->select(['epc', 'reader_id', 'read_at'])
+                ->get();
+
+            $existingLookup = [];
+            foreach ($existingRows as $row) {
+                $existingLookup[$row->epc . '|' . $row->reader_id . '|' . $row->read_at] = true;
+            }
+
+            $rowsToInsert = [];
+            $assetUpdates = []; // [asset_id => ['last_seen_at' => ..., 'location_id' => ...]]
             $seenTodayInBatch = [];
+            $skippedCount = 0;
+            $now = now();
+            $nowStr = $now->format('Y-m-d H:i:s');
 
-            DB::transaction(function () use ($parsedScans, &$insertedCount, &$skippedCount, &$seenTodayInBatch) {
-                foreach ($parsedScans as $item) {
-                    $scan = $item['scan'];
-                    /** @var Carbon $readAt */
-                    $readAt = $item['read_at'];
+            foreach ($parsedScans as $item) {
+                $epc = $item['epc'];
+                $scan = $item['scan'];
+                /** @var Carbon $readAt */
+                $readAt = $item['read_at'];
+                $readAtStr = $readAt->format('Y-m-d H:i:s');
 
-                    $epc = trim((string) $scan['epc']);
-                    $readerId = trim((string) ($scan['readerId'] ?? 'unknown'));
-                    $readerName = isset($scan['readerName']) ? trim((string) $scan['readerName']) : null;
-                    $antennaNo = isset($scan['antenna']) ? (int) $scan['antenna'] : 1;
-                    $rssi = isset($scan['rssi']) ? (float) $scan['rssi'] : null;
+                $readerId = trim((string) ($scan['readerId'] ?? 'unknown'));
+                $readerName = isset($scan['readerName']) ? trim((string) $scan['readerName']) : null;
+                $antennaNo = isset($scan['antenna']) ? (int) $scan['antenna'] : 1;
+                $rssi = isset($scan['rssi']) ? (float) $scan['rssi'] : null;
 
-                    // Avoid inserting duplicate scans for the same EPC, reader, and timestamp
-                    $alreadyExists = DB::table('rfid_scan_logs')
-                        ->where('epc', $epc)
-                        ->where('reader_id', $readerId)
-                        ->where('read_at', $readAt->format('Y-m-d H:i:s'))
-                        ->exists();
+                $dedupeKey = $epc . '|' . $readerId . '|' . $readAtStr;
+                if (isset($existingLookup[$dedupeKey])) {
+                    $skippedCount++;
+                    continue;
+                }
+                $existingLookup[$dedupeKey] = true;
 
-                    if ($alreadyExists) {
-                        $skippedCount++;
-                        continue;
+                $this->ensureDeviceRegistered($readerId, $readerName, null);
+
+                $asset = $assetsBySerial->get($epc);
+                $assetId = $asset->id ?? null;
+                $readerLocationId = $this->resolveReaderLocationId($readerId, $readerName);
+                $scanLocationId = $readerLocationId ?? ($asset->location_id ?? null);
+                $status = $this->resolveScanDirection($readerId, $readAt, $seenTodayInBatch);
+
+                $rowsToInsert[] = [
+                    'epc'         => $epc,
+                    'asset_id'    => $assetId,
+                    'reader_id'   => $readerId,
+                    'reader_name' => $readerName,
+                    'antenna_no'  => $antennaNo,
+                    'rssi'        => $rssi,
+                    'status'      => $status,
+                    'location_id' => $scanLocationId,
+                    'raw_payload' => json_encode($scan),
+                    'read_at'     => $readAtStr,
+                    'created_at'  => $nowStr,
+                    'updated_at'  => $nowStr,
+                ];
+
+                if ($assetId) {
+                    if (!isset($assetUpdates[$assetId])) {
+                        $assetUpdates[$assetId] = [
+                            'last_seen_at' => $readAtStr,
+                            'location_id'  => $asset->location_id ?? null,
+                        ];
                     }
-
-                    $asset = DB::table('assets')
-                        ->where('serial_no', $epc)
-                        ->select('id', 'location_id')
-                        ->first();
-
-                    $assetId = $asset->id ?? null;
-                    $locationId = $asset->location_id ?? null;
-
-                    // Resolve IN / OUT via reader_locations table, falling back to first-seen-today rule
-                    $status = $this->resolveScanDirection($readerId, $readAt, $seenTodayInBatch);
-
-                    $now = now();
-
-                    DB::table('rfid_scan_logs')->insert([
-                        'epc'         => $epc,
-                        'asset_id'    => $assetId,
-                        'reader_id'   => $readerId,
-                        'reader_name' => $readerName,
-                        'antenna_no'  => $antennaNo,
-                        'rssi'        => $rssi,
-                        'status'      => $status,
-                        'location_id' => $locationId,
-                        'raw_payload' => json_encode($scan),
-                        'read_at'     => $readAt->format('Y-m-d H:i:s'),
-                        'created_at'  => $now,
-                        'updated_at'  => $now,
-                    ]);
-
-                    if ($assetId) {
-                        DB::table('assets')
-                            ->where('id', $assetId)
-                            ->update([
-                                'last_seen_at' => $readAt->format('Y-m-d H:i:s'),
-                                'updated_at'   => $now,
-                            ]);
+                    if ($readAtStr >= $assetUpdates[$assetId]['last_seen_at']) {
+                        $assetUpdates[$assetId]['last_seen_at'] = $readAtStr;
                     }
+                    if ($readerLocationId !== null) {
+                        $assetUpdates[$assetId]['location_id'] = $readerLocationId;
+                    }
+                }
+            }
 
-                    $insertedCount++;
+            $insertedCount = count($rowsToInsert);
+
+            DB::transaction(function () use ($rowsToInsert, $assetUpdates, $nowStr) {
+                foreach (array_chunk($rowsToInsert, 500) as $chunk) {
+                    DB::table('rfid_scan_logs')->insert($chunk);
+                }
+
+                foreach ($assetUpdates as $assetId => $upd) {
+                    $payload = [
+                        'last_seen_at' => $upd['last_seen_at'],
+                        'updated_at'   => $nowStr,
+                    ];
+                    if ($upd['location_id'] !== null) {
+                        $payload['location_id'] = $upd['location_id'];
+                    }
+                    DB::table('assets')->where('id', $assetId)->update($payload);
                 }
             });
 

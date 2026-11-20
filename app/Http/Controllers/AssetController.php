@@ -14,47 +14,53 @@ class AssetController extends Controller
 {
     private const ALLOWED_STATUSES = ['available', 'in_use', 'maintenance', 'retired'];
 
-    /*public function __construct()
+    public function __construct()
     {
         $this->middleware('auth');
-    }*/
+    }
 
     public function index(Request $request): View
     {
-        $query = DB::table('assets');
+        $query = DB::table('assets')
+            ->leftJoin('locations', 'assets.location_id', '=', 'locations.id')
+            ->select([
+                'assets.*',
+                'locations.location_name',
+            ]);
 
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
             $query->where(function ($q) use ($search) {
-                $q->where('serial_no', 'like', "%{$search}%")
-                    ->orWhere('asset_code', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%")
-                    ->orWhere('category', 'like', "%{$search}%");
+                $q->where('assets.serial_no', 'like', "%{$search}%")
+                    ->orWhere('assets.asset_code', 'like', "%{$search}%")
+                    ->orWhere('assets.name', 'like', "%{$search}%")
+                    ->orWhere('assets.category', 'like', "%{$search}%")
+                    ->orWhere('locations.location_name', 'like', "%{$search}%");
             });
         }
 
         if ($request->filled('category')) {
             $category = trim((string) $request->input('category'));
-            $query->where('category', 'like', "%{$category}%");
+            $query->where('assets.category', 'like', "%{$category}%");
         }
 
         $status = strtolower(trim((string) $request->input('status')));
         if ($request->filled('status') && in_array($status, self::ALLOWED_STATUSES, true)) {
-            $query->where('status', $status);
+            $query->where('assets.status', $status);
         }
 
         if ($request->filled('location_id')) {
-            $query->where('location_id', $request->input('location_id'));
+            $query->where('assets.location_id', $request->input('location_id'));
         }
 
         $assets = $query
-            ->orderByDesc('last_seen_at')
-            ->orderByDesc('updated_at')
-            ->orderByDesc('id')
+            ->orderByDesc('assets.last_seen_at')
+            ->orderByDesc('assets.updated_at')
+            ->orderByDesc('assets.id')
             ->paginate(15)
             ->withQueryString();
 
-        $locations = DB::table('locations')->orderBy('id')->get();
+        $locations = DB::table('locations')->orderBy('location_name')->get();
 
         $stats = [
             'total'           => DB::table('assets')->count(),
@@ -142,13 +148,6 @@ class AssetController extends Controller
         $areas = DB::table('areas')->orderBy('id')->get();
         $locations = DB::table('locations')->orderBy('id')->get();
         $locationTypes = ['In', 'Out', 'Warehouse'];
-        /*$categories = DB::table('assets')
-            ->select('category', DB::raw('COUNT(*) as total_assets'))
-            ->whereNotNull('category')
-            ->where('category', '!=', '')
-            ->groupBy('category')
-            ->orderBy('category')
-            ->get();*/
         $categories = DB::table('categories')->orderBy('name')->get();
 
         return view('asset.categories', compact('areas', 'locations', 'locationTypes', 'categories'));
@@ -191,13 +190,16 @@ class AssetController extends Controller
     public function create(): View
     {
         $locations = DB::table('locations')->orderBy('id')->get();
-        $categories = DB::table('assets')
-            ->select('category')
-            ->whereNotNull('category')
-            ->where('category', '!=', '')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
+        $categories = DB::table('categories')->orderBy('name')->pluck('name');
+        if ($categories->isEmpty()) {
+            $categories = DB::table('assets')
+                ->select('category')
+                ->whereNotNull('category')
+                ->where('category', '!=', '')
+                ->distinct()
+                ->orderBy('category')
+                ->pluck('category');
+        }
 
         return view('asset.create', compact('locations', 'categories'));
     }
@@ -227,7 +229,7 @@ class AssetController extends Controller
             'location_id' => $validated['location_id'] ?? null,
             'category'    => $validated['category'],
             'status'      => $validated['status'],
-            'last_seen_at' => null,
+            'last_seen_at' => $now,
             'created_at'  => $now,
             'updated_at'  => $now,
         ]);

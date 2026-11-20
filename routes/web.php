@@ -54,5 +54,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/asset/create', [AssetController::class, 'create'])->name('asset.create');
     Route::post('/asset', [AssetController::class, 'store'])->name('asset.store');
     Route::post('/asset/categories/category', [AssetController::class, 'storeCategoryName'])
-        ->name('asset.categories.category.store');
+        ->name('/asset.categories.category.store');
+    Route::post('/asset/map/sync-log', [AssetController::class, 'syncFromLogFile'])
+        ->name('asset.map.sync-log');
+    Route::get('/asset/map/latest-scan', [AssetController::class, 'latestScan'])
+        ->name('asset.map.latest-scan');
 });

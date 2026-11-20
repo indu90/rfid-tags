@@ -91,7 +91,7 @@ class RfidScanProcessorService
             $asset = $tag?->asset;
 
             $logsToInsert[] = [
-                'rfid_tag_id' => $tag?->id,
+                'id' => $tag?->id,
                 'asset_id' => $asset?->id,
                 'location_id' => $asset?->location_id,
                 'epc' => $epc,
@@ -114,7 +114,7 @@ class RfidScanProcessorService
 
                 $matchedAssets[$epc] = [
                     'epc' => $epc,
-                    'rfid_tag_id' => $tag->id,
+                    'id' => $tag->id,
                     'asset_id' => $asset->id,
                     'asset_code' => $asset->asset_code ?? null,
                     'asset_name' => $asset->name ?? null,

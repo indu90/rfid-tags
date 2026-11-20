@@ -116,6 +116,7 @@
                             <th>Last Seen At</th>
                             <th>Created At</th>
                             <th>Updated At</th>
+                            <th class="text-end">ACTION</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -145,6 +146,12 @@
                             <td>{{ $asset->last_seen_at ?? '-' }}</td>
                             <td>{{ $asset->created_at ?? '-' }}</td>
                             <td>{{ $asset->updated_at ?? '-' }}</td>
+                            <td class="text-end text-nowrap">
+                                <a href="{{ route('asset.map', ['asset_id' => $asset->id, 'serial_no' => $asset->serial_no]) }}"
+                                    class="btn btn-sm {{ $asset->serial_no ? 'btn-outline-primary' : 'btn-primary' }}">
+                                    {{ $asset->serial_no ? 'Remap Tag' : 'Assign Tag' }}
+                                </a>
+                            </td>
                         </tr>
                         @empty
                         <tr>

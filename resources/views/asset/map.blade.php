@@ -1,195 +1,380 @@
 @extends('tablar::page')
 
-@section('title', 'Asset Mapping')
+@section('title', 'Assign or Update Serial / EPC Tag')
 
 @section('content')
-<div class="page-header d-print-none">
-    <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
-                <h2 class="page-title">Asset RFID Mapping</h2>
-            </div>
-            <div class="col-auto ms-auto">
-                <a href="{{ url('asset') }}" class="btn btn-outline-secondary">
-                    <i class="ti ti-packages me-1"></i> Back to Asset List
-                </a>
-            </div>
-        </div>
+<div class="container-xl">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="page-title m-0">Assign or Update Serial / EPC Tag</h2>
+        <a href="{{ route('asset.index') }}" class="btn btn-outline-secondary">Back to Asset List</a>
     </div>
-</div>
 
-<div class="page-body">
-    <div class="container-xl">
-        <div id="mapAlert" class="alert d-none" role="alert"></div>
+    <div class="card">
+        <div class="card-body">
+            <form id="mapTagForm" method="POST" action="{{ url('asset/map') }}">
+                @csrf
 
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Assign or Update Serial / EPC Tag</h3>
-            </div>
-            <div class="card-body">
-                <form id="mapTagForm" method="POST" action="{{ url('asset/map') }}">
-                    @csrf
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label required">Select Asset</label>
-                            <select name="asset_id" id="asset_id" class="form-select" required>
-                                <option value="">Choose an asset...</option>
-                                @foreach(($assets ?? collect()) as $asset)
-                                <option value="{{ $asset->id }}"
-                                    data-serial="{{ $asset->serial_no }}"
-                                    data-name="{{ $asset->name }}"
-                                    data-status="{{ $asset->status }}">
-                                    {{ $asset->asset_code }} — {{ $asset->name }} ({{ $asset->serial_no }})
-                                </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label required">Serial No / RFID EPC</label>
-                            <input type="text" name="serial_no" id="serial_no" class="form-control font-monospace" placeholder="Enter or scan EPC / serial number" required>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label">Asset Name</label>
-                            <input type="text" name="name" id="name" class="form-control" placeholder="Optional updated name">
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select">
-                                <option value="">All Statuses</option>
-                                <option value="available" {{ request('status') === 'available' ? 'selected' : '' }}>Available</option>
-                                <option value="in_use" {{ request('status') === 'in_use' ? 'selected' : '' }}>In Use</option>
-                                <option value="maintenance" {{ request('status') === 'maintenance' ? 'selected' : '' }}>Maintenance</option>
-                                <option value="retired" {{ request('status') === 'retired' ? 'selected' : '' }}>Retired</option>
-                            </select>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label">Remarks</label>
-                            <input type="text" name="remarks" id="remarks" class="form-control" placeholder="Optional assignment or remap note">
-                        </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-azure-lt text-azure" id="pollStatusBadge">Auto-poll: ON (3s)</span>
+                    <div class="form-check form-switch m-0">
+                        <input class="form-check-input" type="checkbox" id="autoPollToggle" checked>
+                        <label class="form-check-label small" for="autoPollToggle">Auto-poll scans</label>
                     </div>
+                </div>
 
-                    <div class="mt-4 d-flex justify-content-end gap-2">
-                        <button type="submit" id="mapSubmitBtn" class="btn btn-primary">
-                            <i class="ti ti-link me-1"></i> Save Mapping
+                <div class="mb-3">
+                    <label class="form-label required" for="serial_no">Scanned RFID Tag / EPC</label>
+                    <div class="input-group">
+                        <input type="text" name="serial_no" id="serial_no" class="form-control"
+                            placeholder="Scan RFID tag, fetch latest scan, or enter serial no..."
+                            autocomplete="off" autofocus required>
+                        <button type="button" class="btn btn-outline-primary" id="fetchScanBtn">
+                            Fetch Scan
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="clearScanBtn">
+                            Clear
                         </button>
                     </div>
-                </form>
-            </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label required" for="asset_id">Asset</label>
+                    <select name="asset_id" id="asset_id" class="form-select" required>
+                        <option value="">Select Asset...</option>
+                        @foreach(($assets ?? collect()) as $item)
+                        <option value="{{ $item->id }}"
+                            data-category="{{ $item->category ?? '' }}"
+                            data-status="{{ $item->status ?? 'available' }}">
+                            {{ $item->asset_code }} — {{ $item->name }}
+                            @if($item->serial_no) (Current Tag: {{ $item->serial_no }}) @endif
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="category">Category</label>
+                    <select name="category" id="category" class="form-select">
+                        <option value="">Keep Current / None</option>
+                        @foreach(($categories ?? collect()) as $cat)
+                        <option value="{{ $cat }}">{{ $cat }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="location_id">Location</label>
+                    <select name="location_id" id="location_id" class="form-select">
+                        <option value="">Keep Current Location</option>
+                        @foreach(($locations ?? collect()) as $loc)
+                        <option value="{{ $loc->id }}">{{ $loc->location_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="status">Status</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="available">Available</option>
+                        <option value="in_use">In Use</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="retired">Retired</option>
+                    </select>
+                </div>
+
+                <div id="mapFeedback" class="alert d-none" role="alert"></div>
+
+                <button type="submit" class="btn btn-primary w-100" id="mapSubmitBtn">
+                    Map Tag to Asset
+                </button>
+            </form>
         </div>
     </div>
 </div>
-@endsection
 
-@push('js')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const assetSelect = document.getElementById('asset_id');
-        const serialInput = document.getElementById('serial_no');
-        const nameInput = document.getElementById('name');
-        const statusSelect = document.getElementById('status');
-        const remarksInput = document.getElementById('remarks');
+    document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('mapTagForm');
-        const alertBox = document.getElementById('mapAlert');
-        const submitBtn = document.getElementById('mapSubmitBtn');
+        const serialInput = document.getElementById('serial_no');
+        const assetSelect = document.getElementById('asset_id');
+        const categorySelect = document.getElementById('category');
+        const statusSelect = document.getElementById('status');
+        const locationSelect = document.getElementById('location_id');
+        const feedback = document.getElementById('mapFeedback');
+        const clearBtn = document.getElementById('clearScanBtn');
+        const fetchScanBtn = document.getElementById('fetchScanBtn');
+        const autoPollToggle = document.getElementById('autoPollToggle');
+        const pollStatusBadge = document.getElementById('pollStatusBadge');
 
-        if (!assetSelect || !form) {
-            return;
+        let lastSeenScanId = null;
+        let pollTimer = null;
+        const POLL_INTERVAL_MS = 3000;
+
+        function showAlert(type, text) {
+            if (!feedback) return;
+            feedback.className = `alert alert-${type}`;
+            feedback.textContent = text;
+            feedback.classList.remove('d-none');
         }
 
-        function showAlert(type, message, errors = null) {
-            if (!alertBox) return;
-            alertBox.className = `alert alert-${type}`;
-            alertBox.innerHTML = '';
+        function syncAssetSelection(assetId) {
+            if (!assetSelect) return;
 
-            const textNode = document.createElement('div');
-            textNode.textContent = message;
-            alertBox.appendChild(textNode);
+            if (!assetId) {
+                assetSelect.value = '';
+                return;
+            }
 
-            if (errors && typeof errors === 'object') {
-                const list = document.createElement('ul');
-                list.className = 'mb-0 mt-1';
-                Object.values(errors).flat().forEach(function(msg) {
-                    const li = document.createElement('li');
-                    li.textContent = msg;
-                    list.appendChild(li);
-                });
-                alertBox.appendChild(list);
+            const matchedOption = [...assetSelect.options].find(
+                (opt) => String(opt.value) === String(assetId)
+            );
+
+            if (matchedOption) {
+                assetSelect.value = matchedOption.value;
+                assetSelect.dispatchEvent(new Event('change'));
+            } else {
+                assetSelect.value = '';
             }
         }
 
-        assetSelect.addEventListener('change', function() {
-            const opt = assetSelect.options[assetSelect.selectedIndex];
-            if (!opt || !opt.value) return;
+        function syncLocationSelection(locationId) {
+            if (!locationId || !locationSelect) return;
 
-            if (serialInput) serialInput.value = opt.dataset.serial || '';
-            if (nameInput) nameInput.value = opt.dataset.name || '';
-            if (statusSelect) statusSelect.value = opt.dataset.status || '';
+            const matchedLoc = [...locationSelect.options].find(
+                (opt) => String(opt.value) === String(locationId)
+            );
+
+            if (matchedLoc) {
+                locationSelect.value = matchedLoc.value;
+            }
+        }
+
+        function applyScanToForm(data, {
+            focusAsset = false,
+            isNew = true
+        } = {}) {
+            if (!data || !data.serial_no) return;
+
+            serialInput.value = data.serial_no;
+            syncAssetSelection(data.asset_id);
+            syncLocationSelection(data.location_id);
+
+            const readerInfo = data.reader_name ? ` via ${data.reader_name}` : '';
+            const prefix = isNew ? 'New scan detected' : 'Latest scan loaded';
+            showAlert('info', `${prefix}: ${data.serial_no}${readerInfo}`);
+
+            if (focusAsset && assetSelect) {
+                assetSelect.focus();
+            }
+        }
+
+        serialInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (assetSelect) assetSelect.focus();
+            }
         });
 
-        form.addEventListener('submit', async function(e) {
+        if (assetSelect) {
+            assetSelect.addEventListener('change', () => {
+                const opt = assetSelect.selectedOptions[0];
+                if (!opt || !opt.value) return;
+                if (categorySelect && opt.dataset.category) {
+                    categorySelect.value = opt.dataset.category;
+                }
+                if (statusSelect && opt.dataset.status) {
+                    statusSelect.value = opt.dataset.status;
+                }
+            });
+        }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                serialInput.value = '';
+                if (assetSelect) assetSelect.value = '';
+                serialInput.focus();
+            });
+        }
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (submitBtn) submitBtn.disabled = true;
-            if (alertBox) alertBox.className = 'alert d-none';
+            if (feedback) feedback.classList.add('d-none');
 
-            const payload = {
-                asset_id: assetSelect.value,
-                serial_no: serialInput ? serialInput.value.trim() : '',
-                name: nameInput ? nameInput.value.trim() : '',
-                status: statusSelect && statusSelect.value ? statusSelect.value : null,
-                remarks: remarksInput ? remarksInput.value.trim() : ''
-            };
-
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
-
+            const formData = new FormData(form);
             try {
-                const response = await fetch(form.action, {
+                const res = await fetch(form.action, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': csrfToken
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
                     },
-                    body: JSON.stringify(payload)
+                    body: formData,
                 });
 
-                const rawText = await response.text();
-                let data = null;
-
-                try {
-                    data = JSON.parse(rawText);
-                } catch (_) {
-                    showAlert('danger', `Server error (${response.status}): unexpected non-JSON response.`);
+                const data = await res.json();
+                if (!res.ok) {
+                    const firstErr = data.errors ?
+                        Object.values(data.errors).flat()[0] :
+                        (data.message || 'Failed to map RFID tag.');
+                    showAlert('danger', firstErr);
                     return;
                 }
 
-                if (response.ok && data.status === 'success') {
-                    showAlert('success', data.message || 'Mapping updated successfully.');
-
-                    const selectedOpt = assetSelect.options[assetSelect.selectedIndex];
-                    if (selectedOpt) {
-                        selectedOpt.dataset.serial = payload.serial_no;
-                        if (payload.name) selectedOpt.dataset.name = payload.name;
-                        if (payload.status) selectedOpt.dataset.status = payload.status;
-                    }
-                } else {
-                    showAlert(
-                        'danger',
-                        data.message || `Request failed (${response.status}).`,
-                        data.errors || null
-                    );
-                }
+                showAlert('success', data.message || 'Tag mapped successfully.');
+                serialInput.value = '';
+                if (assetSelect) assetSelect.value = '';
+                serialInput.focus();
             } catch (err) {
-                console.error('RFID mapping fetch error:', err);
-                showAlert('danger', 'Network error while saving mapping. Check console for details.');
-            } finally {
-                if (submitBtn) submitBtn.disabled = false;
+                showAlert('danger', 'Network error while mapping RFID tag.');
             }
         });
+        async function syncAndFetchScan() {
+            try {
+                await fetch("{{ url('asset/map/sync-log') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
+                    },
+                });
+            } catch (err) {
+                // Ignore transient network errors during background sync
+            }
+            await fetchLatestScan({
+                manual: false
+            });
+        }
+        async function fetchLatestScan({
+            manual = false
+        } = {}) {
+            if (manual) {
+                if (feedback) feedback.classList.add('d-none');
+                if (fetchScanBtn) fetchScanBtn.disabled = true;
+            }
+
+            try {
+                const res = await fetch("{{ url('asset/map/latest-scan') }}", {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                });
+
+                if (!res.ok) {
+                    if (manual) {
+                        const errData = await res.json().catch(() => ({}));
+                        showAlert('warning', errData.message || 'No recent RFID scan found.');
+                    }
+                    return;
+                }
+
+                const data = await res.json();
+                if (!data.serial_no) return;
+
+                const isFirstPoll = lastSeenScanId === null;
+                const isNewScan = data.scan_id !== lastSeenScanId;
+
+                if (manual) {
+                    lastSeenScanId = data.scan_id;
+                    applyScanToForm(data, {
+                        focusAsset: true,
+                        isNew: isNewScan
+                    });
+                    return;
+                }
+
+                if (isFirstPoll) {
+                    lastSeenScanId = data.scan_id;
+                    if (serialInput.value.trim() === '') {
+                        applyScanToForm(data, {
+                            focusAsset: false,
+                            isNew: false
+                        });
+                    }
+                    return;
+                }
+
+                if (!isNewScan) {
+                    return;
+                }
+
+                const userIsTyping = document.activeElement === serialInput && serialInput.value.trim() !== '';
+                if (userIsTyping) {
+                    return;
+                }
+
+                lastSeenScanId = data.scan_id;
+                applyScanToForm(data, {
+                    focusAsset: false,
+                    isNew: true
+                });
+            } catch (err) {
+                if (manual) {
+                    showAlert('danger', 'Failed to reach scan endpoint.');
+                }
+            } finally {
+                if (manual && fetchScanBtn) {
+                    fetchScanBtn.disabled = false;
+                }
+            }
+        }
+
+        function stopPolling() {
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+        }
+
+        function startPolling() {
+            stopPolling();
+
+            if (!autoPollToggle || !autoPollToggle.checked) {
+                if (pollStatusBadge) {
+                    pollStatusBadge.className = 'badge bg-secondary-lt text-secondary';
+                    pollStatusBadge.textContent = 'Auto-poll: OFF';
+                }
+                return;
+            }
+
+            if (pollStatusBadge) {
+                pollStatusBadge.className = 'badge bg-azure-lt text-azure';
+                pollStatusBadge.textContent = `Auto-poll: ON (${POLL_INTERVAL_MS / 1000}s)`;
+            }
+
+            fetchLatestScan({
+                manual: false
+            });
+            pollTimer = setInterval(() => {
+                if (!document.hidden) {
+                    fetchLatestScan({
+                        manual: false
+                    });
+                }
+            }, POLL_INTERVAL_MS);
+        }
+
+        if (fetchScanBtn) {
+            fetchScanBtn.addEventListener('click', () => fetchLatestScan({
+                manual: true
+            }));
+        }
+
+        if (autoPollToggle) {
+            autoPollToggle.addEventListener('change', startPolling);
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && autoPollToggle && autoPollToggle.checked) {
+                fetchLatestScan({
+                    manual: false
+                });
+            }
+        });
+
+        startPolling();
     });
 </script>
-@endpush
+@endsection

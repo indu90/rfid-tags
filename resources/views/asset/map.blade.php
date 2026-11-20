@@ -106,8 +106,14 @@
         const autoPollToggle = document.getElementById('autoPollToggle');
         const pollStatusBadge = document.getElementById('pollStatusBadge');
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const preselectedAssetId = urlParams.get('asset_id');
+        const preselectedSerial = urlParams.get('serial_no');
+        let hasUrlSelection = Boolean(preselectedSerial || preselectedAssetId);
+
         let lastSeenScanId = null;
         let pollTimer = null;
+        let isSyncing = false;
         const POLL_INTERVAL_MS = 3000;
 
         function showAlert(type, text) {
@@ -168,6 +174,24 @@
             }
         }
 
+        if (preselectedSerial && serialInput) {
+            serialInput.value = preselectedSerial.trim();
+        }
+
+        if (preselectedAssetId && assetSelect) {
+            const matchedOpt = [...assetSelect.options].find(
+                (opt) => String(opt.value) === String(preselectedAssetId)
+            );
+            if (matchedOpt) {
+                assetSelect.value = matchedOpt.value;
+                assetSelect.dispatchEvent(new Event('change'));
+            }
+        }
+
+        if (preselectedSerial) {
+            showAlert('info', `Selected tag from link: ${preselectedSerial.trim()}`);
+        }
+
         serialInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -190,6 +214,7 @@
 
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
+                hasUrlSelection = false;
                 serialInput.value = '';
                 if (assetSelect) assetSelect.value = '';
                 serialInput.focus();
@@ -221,6 +246,7 @@
                     return;
                 }
 
+                hasUrlSelection = false;
                 showAlert('success', data.message || 'Tag mapped successfully.');
                 serialInput.value = '';
                 if (assetSelect) assetSelect.value = '';
@@ -229,7 +255,10 @@
                 showAlert('danger', 'Network error while mapping RFID tag.');
             }
         });
-        async function syncAndFetchScan() {
+
+        async function syncFromLog() {
+            if (isSyncing) return;
+            isSyncing = true;
             try {
                 await fetch("{{ url('asset/map/sync-log') }}", {
                     method: 'POST',
@@ -241,17 +270,22 @@
                 });
             } catch (err) {
                 // Ignore transient network errors during background sync
+            } finally {
+                isSyncing = false;
             }
-            await fetchLatestScan({
-                manual: false
-            });
         }
+
         async function fetchLatestScan({
-            manual = false
+            manual = false,
+            syncFirst = false
         } = {}) {
             if (manual) {
                 if (feedback) feedback.classList.add('d-none');
                 if (fetchScanBtn) fetchScanBtn.disabled = true;
+            }
+
+            if (syncFirst) {
+                await syncFromLog();
             }
 
             try {
@@ -274,9 +308,10 @@
                 if (!data.serial_no) return;
 
                 const isFirstPoll = lastSeenScanId === null;
-                const isNewScan = data.scan_id !== lastSeenScanId;
+                const isNewScan = Number(data.scan_id) !== Number(lastSeenScanId);
 
                 if (manual) {
+                    hasUrlSelection = false;
                     lastSeenScanId = data.scan_id;
                     applyScanToForm(data, {
                         focusAsset: true,
@@ -287,7 +322,7 @@
 
                 if (isFirstPoll) {
                     lastSeenScanId = data.scan_id;
-                    if (serialInput.value.trim() === '') {
+                    if (!hasUrlSelection && serialInput.value.trim() === '') {
                         applyScanToForm(data, {
                             focusAsset: false,
                             isNew: false
@@ -297,6 +332,10 @@
                 }
 
                 if (!isNewScan) {
+                    return;
+                }
+
+                if (hasUrlSelection && serialInput.value.trim() !== '') {
                     return;
                 }
 
@@ -345,12 +384,14 @@
             }
 
             fetchLatestScan({
-                manual: false
+                manual: false,
+                syncFirst: true
             });
             pollTimer = setInterval(() => {
                 if (!document.hidden) {
                     fetchLatestScan({
-                        manual: false
+                        manual: false,
+                        syncFirst: true
                     });
                 }
             }, POLL_INTERVAL_MS);
@@ -358,7 +399,8 @@
 
         if (fetchScanBtn) {
             fetchScanBtn.addEventListener('click', () => fetchLatestScan({
-                manual: true
+                manual: true,
+                syncFirst: true
             }));
         }
 
@@ -369,7 +411,8 @@
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && autoPollToggle && autoPollToggle.checked) {
                 fetchLatestScan({
-                    manual: false
+                    manual: false,
+                    syncFirst: true
                 });
             }
         });
